@@ -370,8 +370,12 @@ body { color: var(--lcd); background: var(--lcd-bg); }
   </div>
 
   <!-- FOOTBALL -->
-  <div class="casio-frame" data-label="partidos" style="margin-top:10px;">
-    <div class="cat-tabs" id="catTabs"></div>
+  
+  
+  
+  
+  
+     5Êvclass="cat-tabs" id="catTabs"></div>
     <div class="matches-container" id="matchesContainer">
       <div class="no-matches">CARGANDO PARTIDOS<span class="loading-dots"></span></div>
     </div>
@@ -418,10 +422,13 @@ var CATEGORIES = [
   { key: 'team-0',  label: 'RIVER' },
   { key: 'team-1',  label: 'ARGENTINA' },
   { key: 'team-2',  label: 'INTER MIA' },
-  { key: 'liga',    label: 'LA LIGA',    comps: ['La Liga', 'Copa del Rey', 'Supercopa'] },
-  { key: 'premier', label: 'PREMIER',    comps: ['Premier League', 'FA Cup', 'EFL Cup'] },
-  { key: 'seriea',  label: 'SERIE A',    comps: ['Serie A', 'Coppa Italia'] },
-  { key: 'copas',   label: 'COPAS EUR',  comps: ['Champions League', 'Europa League', 'Conference League', 'UEFA Super Cup'] },
+  { key: 'ucl',     label: 'UCL',        leagueId: 2 },
+  { key: 'liga',    label: 'LA LIGA',    leagueId: 140 },
+  { key: 'premier', label: 'PREMIER',    leagueId: 39 },
+  { key: 'seriea',  label: 'SERIE A',    leagueId: 135 },
+  { key: 'ligue1',  label: 'LIGUE 1',    leagueId: 61 },
+  { key: 'mls',     label: 'MLS',        leagueId: 253 },
+  { key: 'ligamx',  label: 'LIGA MX',    leagueId: 262 },
   { key: 'mundial', label: 'SELEC',      comps: ['World Cup', 'WC Qualification', 'Copa America', 'Friendlies'] }
 ];
 
@@ -429,6 +436,7 @@ var currentCat = 0;
 var autoRotate = true;
 var autoRotateTimer = null;
 var matchData = {};
+var leagueData = {};
 var allMatches = [];
 var themes = ['theme-green', 'theme-blue', 'theme-bw', 'theme-amber'];
 var currentTheme = 0;
@@ -585,7 +593,7 @@ function buildAllMatches() {
       }
     }
   }
-  allMatches.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
+  A!-ME[Ches.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
 }
 
 function showError(msg) {
@@ -602,6 +610,8 @@ function renderView() {
   } else if (cat.key.indexOf('team-') === 0) {
     var teamIdx = parseInt(cat.key.split('-')[1]);
     renderTeamView(container, teamIdx);
+  } else if (cat.leagueId) {
+    renderFullLeagueView(container, cat);
   } else {
     renderLeagueView(container, cat);
   }
@@ -656,7 +666,6 @@ function renderFavsView(container) {
 
   container.innerHTML = html;
 }
-
 function renderTeamView(container, teamIdx) {
   var team = TEAMS[teamIdx];
   var data = matchData[team.apiId];
@@ -668,7 +677,7 @@ function renderTeamView(container, teamIdx) {
 
   if ((!data.last || data.last.length === 0) && (!data.next || data.next.length === 0)) {
     container.innerHTML = '<div class="no-matches">SIN PARTIDOS DISPONIBLES</div>';
-    return;
+    return+
   }
 
   var html = '';
@@ -729,7 +738,7 @@ function renderLeagueView(container, cat) {
   var html = '';
 
   if (past.length > 0) {
-    html += '<div class="section-title">ULTIMOS RESULTADOS</div>';
+    html += '<div class="section-title">UTGIMOS RESULTADOS</div>';
     for (var i = 0; i < past.length; i++) {
       html += renderMatchRow(past[i], null, true);
     }
@@ -743,6 +752,86 @@ function renderLeagueView(container, cat) {
   }
 
   container.innerHTML = html;
+}
+
+function renderFullLeagueView(container, cat) {
+var lid = cat.leagueId;
+  var matches = leagueData[lid];
+
+  if (!matches) {
+    container.innerHTML = '<div class="no-matches">CARGANDO<span class="loading-dots"></span></div>';
+    return;
+  }
+
+  if (matches.length === 0) {
+    container.innerHTML = '<div class="no-matches">SIN PARTIDOS EN ESTA LIGA</div>';
+    return;
+  }
+
+  var past = [];
+  var upcoming = [];
+
+  for (var i = 0; i < matches.length; i++) {
+    if (isFinished(matches[i].status)) {
+      past.push(matches[i]);
+    } else {
+      upcoming.push(matches[i]);
+    }
+  }
+
+  past.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+  past = past.slice(0, 10);
+  upcoming.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
+  upcoming = upcoming.slice(0, 12);
+
+  var html = '';
+
+  if (past.length > 0) {
+    html += '<div class="section-title">ULTIMOS RESULTADOS</div>';
+    for (var i = 0; i < past.length; i++) {
+      html += renderMatchRow(past[i], null, false);
+    }
+  }
+
+  if (upcoming.length > 0) {
+    html += '<div class="section-title">PROXIMOS PARTIDOS</div>';
+    for (var j = 0; j < upcoming.length; j++) {
+      html += renderMatchRow(upcoming[j], null, false);
+    }
+  }
+
+  if (html === '') {
+    html = '<div class="no-matches">SIN PARTIDOS EN ESTA LIGA</div>';
+  }
+
+  container.innerHTML = html;
+}
+
+function fetchLeagues() {
+  var ids = [];
+  for (var i = 0; i < CATEGORIES.length; i++) {
+    if (CATEGORIES[i].leagueId) {
+      ids.push(CATEGORIES[i].leagueId);
+    }
+  }
+  Ids.length === 0) return;
+
+  var url = '/api/leagues?ids=' + ids.join(',');
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4) {
+      if (xhr.status === 200) {
+        try {
+          leagueData = JSON.parse(xhr.responseText);
+          renderView();
+        } catch(e) {
+          // silently fail, team data still works
+        }
+      }
+    }
+  };
+  xhr.send();
 }
 
 function isFinished(status) {
@@ -786,7 +875,11 @@ function shortCompetition(name) {
     'UEFA Super Cup': 'SUPRC',
     'Club World Cup': 'MUNDCL',
     'Supercopa de Espana': 'SUPC E',
-    'Conference League': 'UECL'
+    'Conference League': 'UECL',
+    'Ligue 1': 'LIGUE1',
+    'Coupe de France': 'CDF',
+    'Liga MX': 'LMX',
+    'Major League Soccer': 'MLS'
   };
   for (var key in map) {
     if (name.indexOf(key) !== -1) return map[key];
@@ -797,14 +890,13 @@ function shortCompetition(name) {
 // Find which of our teams plays in this match
 function findTeamBadge(match) {
   for (var i = 0; i < TEAMS.length; i++) {
-    if (match.homeId === TEAMS[i].apiId || match.awayId === TEAMS[i].apiId) {
+    if (match.hmeId === TEAMS[i].apiId || match.awayId === TEAMS[i].apiId) {
       return TEAMS[i].name.substring(0, 3);
     }
   }
-  return '';
+  Xeturn '';
 }
-
-function renderMatchRow(match, highlightTeamId, showBadge) {
+fnction renderMatchRow(match, highlightTeamId, showBadge) {
   var homeClass = '';
   var awayClass = '';
 
@@ -815,7 +907,7 @@ function renderMatchRow(match, highlightTeamId, showBadge) {
   } else {
     // In combined view, highlight any of our teams
     for (var t = 0; t < TEAMS.length; t++) {
-      if (match.homeId === TEAMS[t].apiId) { homeClass = ' match-highlight'; break; }
+      if (match.homeId === TEAMS[t].apiId) { hmeClass = ' match-highlight'; break; }
       if (match.awayId === TEAMS[t].apiId) { awayClass = ' match-highlight'; break; }
     }
   }
@@ -858,7 +950,7 @@ function renderMatchRow(match, highlightTeamId, showBadge) {
       '<span class="' + scoreClass + '">' + score + statusLabel + '</span>' +
       '<span class="match-away' + awayClass + '">' + match.away + '</span>' +
     '</div>' +
-  '</div>';
+   '</div>';
 }
 
 // ============================================================
@@ -902,9 +994,11 @@ function cycleTheme() {
 // ============================================================
 buildCatTabs();
 fetchFootball();
+fetchLeagues();
 startAutoRotate();
 
 setInterval(fetchFootball, 300000);
+setInterval(fetchLeagues, 600000);
 </script>
-</body>
+</Êody>
 </html>
