@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>Casio Futbol Dashboard</title>
+<style>
+@font-face {
+  font-family: 'DSEG7';
+  src: url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff') format('woff');
+  font-weight: bold; font-style: normal;
+}
+@font-face {
+  font-family: 'ShareTech';
+  src: url('https://fonts.gstatic.com/s/sharetechmono/v15/J7aHnp1uDWRBEqV98dVQztYldFcLowEF.woff2') format('woff2');
+  font-weight: normal; font-style: normal;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1a1a1a; color: #33ff66;
+  font-family: 'ShareTech', 'Courier New', monospace;
+  min-height: 100vh; overflow-x: hidden;
+  -webkit-user-select: none; user-select: none;
+}
+body.theme-green { --lcd: #33ff66; --lcd-dim: #0a3318; --lcd-bg: #0d1f12; --lcd-border: #1a4d26; --lcd-shadow: rgba(51,255,102,0.15); }
+body.theme-blue { --lcd: #66ccff; --lcd-dim: #0a2233; --lcd-bg: #0d1a2a; --lcd-border: #1a3d5c; --lcd-shadow: rgba(102,204,255,0.15); }
+body.theme-bw { --lcd: #e0e0e0; --lcd-dim: #1a1a1a; --lcd-bg: #111111; --lcd-border: #333333; --lcd-shadow: rgba(224,224,224,0.1); }
+body.theme-amber { --lcd: #ffaa00; --lcd-dim: #331a00; --lcd-bg: #1a1000; --lcd-border: #4d3300; --lcd-shadow: rgba(255,170,0,0.15); }
+body { color: var(--lcd); background: var(--lcd-bg); }
+.dashboard { max-width: 900px; margin: 0 auto; padding: 10px; }
+.casio-frame {
+  border: 2px solid var(--lcd-border); border-radius: 12px; padding: 15px;
+  margin-bottom: 10px; background: var(--lcd-bg);
+  box-shadow: inset 0 0 30px var(--lcd-shadow), 0 0 15px var(--lcd-shadow);
+  position: relative;
+}
+.casio-frame::before {
+  content: attr(data-label); position: absolute; top: -9px; left: 15px;
+  background: var(--lcd-bg); padding: 0 8px; font-size: 11px;
+  color: var(--lcd); opacity: 0.6; letter-spacing: 2px; text-transform: uppercase;
+}
+.top-bar { display: flex; gap: 10px; align-items: stretch; }
+.clock-section { flex: 1; }
+.clock-display {
+  font-family: 'DSEG7', monospace; font-size: 52px; letter-spacing: 3px;
+  text-align: center; line-height: 1; text-shadow: 0 0 20px var(--lcd-shadow); padding: 10px 0;
+}
+.clock-date { text-align: center; font-size: 13px; opacity: 0.7; margin-top: 5px; letter-spacing: 1px; }
+.weather-section { flex: 0 0 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.weather-temp { font-family: 'DSEG7', monospace; font-size: 36px; text-shadow: 0 0 15px var(--lcd-shadow); }
+.weather-desc { font-size: 12px; opacity: 0.7; margin-top: 4px; text-align: center; letter-spacing: 1px; }
+.weather-icon { font-size: 22px; margin-bottom: 4px; }
+.team-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; padding: 0 2px; }
+.team-tab {
+  background: transparent; border: 1px solid var(--lcd-border); color: var(--lcd);
+  opacity: 0.5; padding: 4px 8px; font-family: 'ShareTech', monospace;
+  font-size: 11px; cursor: pointer; border-radius: 4px; transition: all 0.2s; letter-spacing: 1px;
+}
+.team-tab:hover { opacity: 0.8; }
+.team-tab.active { opacity: 1; background: var(--lcd); color: var(--lcd-bg); border-color: var(--lcd); font-weight: bold; }
+.matches-container { min-height: 280px; }
+.section-title { font-size: 12px; opacity: 0.5; letter-spacing: 3px; text-transform: uppercase; margin: 12px 0 8px; border-bottom: 1px solid var(--lcd-border); padding-bottom: 4px; }
+.match-row { display: flex; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--lcd-dim); font-size: 13px; gap: 8px; }
+.match-row:last-child { border-bottom: none; }
+.match-date { flex: 0 0 70px; font-size: 11px; opacity: 0.6; }
+.match-competition { flex: 0 0 55px; font-size: 10px; opacity: 0.4; letter-spacing: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.match-teams { flex: 1; display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.match-home, .match-away { flex: 1; }
+.match-home { text-align: right; } .match-away { text-align: left; }
+.match-score { flex: 0 0 50px; text-align: center; font-family: 'DSEG7', monospace; font-size: 16px; text-shadow: 0 0 10px var(--lcd-shadow); }
+.match-score.pending { font-family: 'ShareTech', monospace; font-size: 11px; opacity: 0.5; }
+.match-live { animation: blink 1s infinite; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+.match-highlight { font-weight: bold; text-shadow: 0 0 8px var(--lcd-shadow); }
+.no-matches { text-align: center; opacity: 0.4; padding: 30px; font-size: 13px; letter-spacing: 2px; }
+.controls { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 8px 0; }
+.theme-btn { background: transparent; border: 1px solid var(--lcd-border); color: var(--lcd); opacity: 0.5; padding: 3px 10px; font-family: 'ShareTech', monospace; font-size: 10px; cursor: pointer; border-radius: 3px; letter-spacing: 1px; }
+.theme-btn:hover { opacity: 0.8; }
+.auto-label { font-size: 10px; opacity: 0.4; letter-spacing: 1px; }
+.brand-label { text-align: center; font-size: 10px; opacity: 0.25; letter-spacing: 3px; margin-top: 8px; text-transform: uppercase; }
+.loading-dots::after { content: ''; animation: dots 1.5s steps(4, end) infinite; }
+@keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
+@media (max-width: 600px) {
+  .top-bar { flex-direction: column; } .weather-section { flex: none; }
+  .clock-display { font-size: 38px; } .weather-temp { font-size: 28px; }
+  .match-competition { display: none; } .match-date { flex: 0 0 55px; font-size: 10px; }
+  .match-score { flex: 0 0 40px; font-size: 14px; } .match-teams { font-size: 12px; }
+  .team-tab { font-size: 10px; padding: 3px 6px; }
+}
+</style>
+</head>
+<body class="theme-green">
+<div class="dashboard">
+  <div class="top-bar">
+    <div class="casio-frame clock-section" data-label="hora">
+      <div class="clock-display" id="clock">--:--:--</div>
+      <div class="clock-date" id="clockDate">---</div>
+    </div>
+    <div class="casio-frame weather-section" data-label="clima">
+      <div class="weather-icon" id="weatherIcon">--</div>
+      <div class="weather-temp" id="weatherTemp">--.-</div>
+      <div class="weather-desc" id="weatherDesc">CARGANDO<span class="loading-dots"></span></div>
+    </div>
+  </div>
+  <div class="casio-frame" data-label="futbol" style="margin-top:10px;">
+    <div class="team-tabs" id="teamTabs"></div>
+    <div class="matches-container" id="matchesContainer">
+      <div class="no-matches">CARGANDO PARTIDOS<span class="loading-dots"></span></div>
+    </div>
+  </div>
+  <div class="controls">
+    <div>
+      <button class="theme-btn" onclick="cycleTheme()">TEMA</button>
+      <button class="theme-btn" onclick="toggleAutoRotate()" id="autoBtn">AUTO: ON</button>
+    </div>
+    <span class="auto-label" id="refreshLabel">--</span>
+  </div>
+  <div class="brand-label">CASIO FUTBOL DASHBOARD</div>
+</div>
+<script>
+var LAT = -34.6037;
+var LON = -58.3816;
+var TEAMS = [
+  { id: 'river', name: 'RIVER', apiId: 435, color: '#ff3333' },
+  { id: 'argentina', name: 'ARGENTINA', apiId: 26, color: '#75aadb' },
+  { id: 'miami', name: 'INTER MIA', apiId: 18656, color: '#f7b5cd' },
+  { id: 'barca', name: 'BARCELONA', apiId: 529, color: '#a50044' },
+  { id: 'real', name: 'R. MADRID', apiId: 541, color: '#ffffff' },
+  { id: 'atletico', name: 'ATLETICO', apiId: 530, color: '#cb3524' },
+  { id: 'inter', name: 'INTER', apiId: 505, color: '#009cdc' },
+  { id: 'manu', name: 'MAN UTD', apiId: 33, color: '#da291c' },
+  { id: 'manc', name: 'MAN CITY', apiId: 50, color: '#6cabdd' }
+];
+var currentTeam = 0, autoRotate = true, autoRotateTimer = null, matchData = {};
+var themes = ['theme-green', 'theme-blue', 'theme-bw', 'theme-amber'], currentTheme = 0;
+
+function updateClock() {
+  var now = new Date();
+  var h = ('0'+now.getHours()).slice(-2), m = ('0'+now.getMinutes()).slice(-2), s = ('0'+now.getSeconds()).slice(-2);
+  document.getElementById('clock').textContent = h+':'+m+':'+s;
+  var dias = ['DOM','LUN','MAR','MIE','JUE','VIE','SAB'];
+  var meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+  document.getElementById('clockDate').textContent = dias[now.getDay()]+' '+now.getDate()+' '+meses[now.getMonth()]+' '+now.getFullYear();
+}
+setInterval(updateClock, 1000); updateClock();
+var WMO_ICONS={0:'\u2600\ufe0f',1:'\ud83c\udf24\ufe0f',2:'\u26c5',3:'\u2601\ufe0f',45:'\ud83c\udf2b\ufe0f',48:'\ud83c\udf2b\ufe0f',51:'\ud83c\udf26\ufe0f',53:'\ud83c\udf26\ufe0f',55:'\ud83c\udf27\ufe0f',61:'\ud83c\udf27\ufe0f',63:'\ud83c\udf27\ufe0f',65:'\ud83c\udf27\ufe0f',71:'\ud83c\udf28\ufe0f',73:'\ud83c\udf28\ufe0f',75:'\ud83c\udf28\ufe0f',80:'\ud83c\udf26\ufe0f',81:'\ud83c\udf27\ufe0f',82:'\ud83c\udf27\ufe0f',95:'\u26c8\ufe0f',96:'\u26c8\ufe0f',99:'\u26c8\ufe0f'};
+var WMO_DESC={0:'DESPEJADO',1:'MAYORMENTE DESPEJADO',2:'PARCIALMENTE NUBLADO',3:'NUBLADO',45:'NIEBLA',48:'NIEBLA',51:'LLOVIZNA LEVE',53:'LLOVIZNA',55:'LLOVIZNA FUERTE',61:'LLUVIA LEVE',63:'LLUVIA',65:'LLUVIA FUERTE',71:'NIEVE LEVE',73:'NIEVE',75:'NIEVE FUERTE',80:'CHUBASCOS',81:'CHUBASCOS',82:'CHUBASCOS FUERTES',95:'TORMENTA',96:'TORMENTA C/GRANIZO',99:'TORMENTA FUERTE'};
+
+function fetchWeather() {
+  var url = '/api/weather?lat='+LAT+'&lon='+LON;
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4 && xhr.status === 200) {
+      try {
+        var data = JSON.parse(xhr.responseText);
+        var temp = data.current_weather.temperature;
+        var code = data.current_weather.weathercode;
+        document.getElementById('weatherTemp').textContent = temp.toFixed(1)+'\u00b0';
+        document.getElementById('weatherIcon').textContent = WMO_ICONS[code]||'\ud83c\udf21\ufe0f';
+        document.getElementById('weatherDesc').textContent = WMO_DESC[code]||'CODIGO '+code;
+      } catch(e) { document.getElementById('weatherDesc').textContent = 'ERROR'; }
+    }
+  };
+  xhr.send();
+}
+fetchWeather(); setInterval(fetchWeather, 600000);
+function buildTabs() {
+  var c = document.getElementById('teamTabs'); c.innerHTML = '';
+  for (var i = 0; i < TEAMS.length; i++) {
+    var btn = document.createElement('button');
+    btn.className = 'team-tab'+(i===currentTeam?' active':'');
+    btn.textContent = TEAMS[i].name;
+    btn.setAttribute('data-idx', i);
+    btn.onclick = function() { selectTeam(parseInt(this.getAttribute('data-idx'))); resetAutoRotate(); };
+    c.appendChild(btn);
+  }
+}
+function selectTeam(idx) {
+  currentTeam = idx;
+  var tabs = document.querySelectorAll('.team-tab');
+  for (var i = 0; i < tabs.length; i++) tabs[i].className = 'team-tab'+(i===idx?' active':'');
+  renderMatches();
+}
+function fetchFootball() {
+  var ids = [];
+  for (var i = 0; i < TEAMS.length; i++) ids.push(TEAMS[i].apiId);
+  var url = '/api/football?teams='+ids.join(',');
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4) {
+      if (xhr.status === 200) {
+        try {
+          matchData = JSON.parse(xhr.responseText); renderMatches();
+          var now = new Date();
+          document.getElementById('refreshLabel').textContent = 'ACT: '+('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2);
+        } catch(e) { showError('ERROR AL PROCESAR DATOS'); }
+      } else { showError('ERROR AL CARGAR DATOS'); }
+    }
+  };
+  xhr.send();
+}
+function showError(msg) { document.getElementById('matchesContainer').innerHTML = '<div class="no-matches">'+msg+'</div>'; }
+function formatMatchDate(ds) {
+  var d = new Date(ds);
+  var dias = ['DOM','LUN','MAR','MIE','JUE','VIE','SAB'];
+  return dias[d.getDay()]+' '+('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+}
+function shortCompetition(name) {
+  if (!name) return '';
+  var map = {'Primera Division':'LIGA AR','Copa Libertadores':'LIBERT','Copa Sudamericana':'SUDAM','Copa Argentina':'COPA AR','Copa de la Liga Profesional':'COPA LP','World Cup':'MUNDIAL','WC Qualification':'ELIM','WC Qualification South America':'ELIM SA','Copa America':'C.AMER','Friendlies':'AMIST','MLS':'MLS','Leagues Cup':'L.CUP','La Liga':'LALIGA','Champions League':'UCL','Copa del Rey':'COPA R','Serie A':'SERIE A','Coppa Italia':'COPPA','Premier League':'PL','FA Cup':'FA CUP','EFL Cup':'EFL','Europa League':'UEL','UEFA Super Cup':'SUPRC','Club World Cup':'MUNDCL','Supercopa de Espana':'SUPC E','Conference League':'UECL'};
+  for (var key in map) { if (name.indexOf(key) !== -1) return map[key]; }
+  return name.substring(0, 6).toUpperCase();
+}
+function renderMatches() {
+  var team = TEAMS[currentTeam], data = matchData[team.apiId];
+  var c = document.getElementById('matchesContainer');
+  if (!data) { c.innerHTML = '<div class="no-matches">CARGANDO<span class="loading-dots"></span></div>'; return; }
+  if ((!data.last||data.last.length===0)&&(!data.next||data.next.length===0)) { c.innerHTML = '<div class="no-matches">SIN PARTIDOS DISPONIBLES</div>'; return; }
+  var html = '';
+  if (data.last && data.last.length > 0) {
+    html += '<div class="section-title">ULTIMOS RESULTADOS</div>';
+    for (var i = 0; i < data.last.length; i++) html += renderMatchRow(data.last[i], team.apiId);
+  }
+  if (data.next && data.next.length > 0) {
+    html += '<div class="section-title">PROXIMOS PARTIDOS</div>';
+    for (var j = 0; j < data.next.length; j++) html += renderMatchRow(data.next[j], team.apiId);
+  }
+  c.innerHTML = html;
+}
+function renderMatchRow(match, teamId) {
+  var isHome = match.homeId === teamId;
+  var homeClass = isHome ? ' match-highlight' : '', awayClass = !isHome ? ' match-highlight' : '';
+  var score = '', scoreClass = 'match-score';
+  if (match.status==='FT'||match.status==='AET'||match.status==='PEN') {
+    score = (match.homeGoals!==null?match.homeGoals:'-')+'-'+(match.awayGoals!==null?match.awayGoals:'-');
+  } else if (match.status==='LIVE'||match.status==='1H'||match.status==='2H'||match.status==='HT'||match.status==='ET') {
+    score = (match.homeGoals!==null?match.homeGoals:'0')+'-'+(match.awayGoals!==null?match.awayGoals:'0');
+    scoreClass += ' match-live';
+  } else { score = 'VS'; scoreClass += ' pending'; }
+  var statusLabel = '';
+  if (match.status==='LIVE'||match.status==='1H'||match.status==='2H') statusLabel=' ['+(match.elapsed||'EN VIVO')+"\x27]";
+  else if (match.status==='HT') statusLabel=' [ET]';
+  else if (match.status==='PEN') statusLabel=' (P)';
+  else if (match.status==='AET') statusLabel=' (AET)';
+  return '<div class="match-row">'+ '<span class="match-date">'+formatMatchDate(match.date)+'</span>'+ '<span class="match-competition">'+shortCompetition(match.competition)+'</span>'+ '<div class="match-teams">'+ '<span class="match-home'+homeClass+'">'+match.home+'</span>'+ '<span class="'+scoreClass+'">'+score+statusLabel+'</span>'+ '<span class="match-away'+awayClass+'">'+match.away+'</span>'+ '</div></div>';
+}
+function startAutoRotate() {
+  if (autoRotateTimer) clearInterval(autoRotateTimer);
+  autoRotateTimer = setInterval(function() { if (!autoRotate) return; currentTeam = (currentTeam+1)%TEAMS.length; selectTeam(currentTeam); }, 8000);
+}
+function resetAutoRotate() { if (autoRotate) startAutoRotate(); }
+function toggleAutoRotate() {
+  autoRotate = !autoRotate;
+  document.getElementById('autoBtn').textContent = 'AUTO: '+(autoRotate?'ON':'OFF');
+  if (autoRotate) startAutoRotate(); else if (autoRotateTimer) clearInterval(autoRotateTimer);
+}
+function cycleTheme() { currentTheme = (currentTheme+1)%themes.length; document.body.className = themes[currentTheme]; }
+buildTabs(); fetchFootball(); startAutoRotate();
+setInterval(fetchFootball, 300000);
+<\/script>
+</body>
+</html>
