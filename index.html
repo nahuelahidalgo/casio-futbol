@@ -110,12 +110,28 @@ body { color: var(--lcd); background: var(--lcd-bg); }
 }
 
 .weather-temp {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  line-height: 1;
+}
+
+.weather-temp-num {
   font-family: 'DSEG7', monospace;
   font-size: 36px;
   text-shadow: 0 0 15px var(--lcd-shadow);
 }
 
+.weather-temp-deg {
+  font-family: 'ShareTech', monospace;
+  font-size: 18px;
+  margin-top: 2px;
+  margin-left: 2px;
+  opacity: 0.8;
+}
+
 .weather-desc {
+  font-family: 'ShareTech', monospace;
   font-size: 12px;
   opacity: 0.7;
   margin-top: 4px;
@@ -124,25 +140,26 @@ body { color: var(--lcd); background: var(--lcd-bg); }
 }
 
 .weather-icon {
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
   font-size: 22px;
   margin-bottom: 4px;
 }
 
-/* === TEAM TABS === */
-.team-tabs {
+/* === CATEGORY TABS (top level: FAVS, leagues) === */
+.cat-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 3px;
   margin-bottom: 10px;
   padding: 0 2px;
 }
 
-.team-tab {
+.cat-tab {
   background: transparent;
   border: 1px solid var(--lcd-border);
   color: var(--lcd);
-  opacity: 0.5;
-  padding: 4px 8px;
+  opacity: 0.45;
+  padding: 5px 10px;
   font-family: 'ShareTech', monospace;
   font-size: 11px;
   cursor: pointer;
@@ -151,13 +168,18 @@ body { color: var(--lcd); background: var(--lcd-bg); }
   letter-spacing: 1px;
 }
 
-.team-tab:hover { opacity: 0.8; }
-.team-tab.active {
+.cat-tab:hover { opacity: 0.8; }
+.cat-tab.active {
   opacity: 1;
   background: var(--lcd);
   color: var(--lcd-bg);
   border-color: var(--lcd);
   font-weight: bold;
+}
+
+.cat-tab.fav-tab {
+  border-color: var(--lcd);
+  opacity: 0.6;
 }
 
 /* === MATCHES === */
@@ -253,6 +275,15 @@ body { color: var(--lcd); background: var(--lcd-bg); }
   letter-spacing: 2px;
 }
 
+/* team badge in fav view */
+.match-badge {
+  flex: 0 0 18px;
+  font-size: 10px;
+  text-align: center;
+  opacity: 0.5;
+  letter-spacing: 0;
+}
+
 /* === CONTROLS === */
 .controls {
   display: flex;
@@ -309,12 +340,13 @@ body { color: var(--lcd); background: var(--lcd-bg); }
   .top-bar { flex-direction: column; }
   .weather-section { flex: none; }
   .clock-display { font-size: 38px; }
-  .weather-temp { font-size: 28px; }
+  .weather-temp-num { font-size: 28px; }
+  .weather-temp-deg { font-size: 14px; }
   .match-competition { display: none; }
   .match-date { flex: 0 0 55px; font-size: 10px; }
   .match-score { flex: 0 0 40px; font-size: 14px; }
   .match-teams { font-size: 12px; }
-  .team-tab { font-size: 10px; padding: 3px 6px; }
+  .cat-tab { font-size: 10px; padding: 3px 6px; }
 }
 </style>
 </head>
@@ -329,14 +361,17 @@ body { color: var(--lcd); background: var(--lcd-bg); }
     </div>
     <div class="casio-frame weather-section" data-label="clima">
       <div class="weather-icon" id="weatherIcon">--</div>
-      <div class="weather-temp" id="weatherTemp">--.-</div>
+      <div class="weather-temp" id="weatherTemp">
+        <span class="weather-temp-num">--.-</span>
+        <span class="weather-temp-deg"></span>
+      </div>
       <div class="weather-desc" id="weatherDesc">CARGANDO<span class="loading-dots"></span></div>
     </div>
   </div>
 
   <!-- FOOTBALL -->
-  <div class="casio-frame" data-label="futbol" style="margin-top:10px;">
-    <div class="team-tabs" id="teamTabs"></div>
+  <div class="casio-frame" data-label="partidos" style="margin-top:10px;">
+    <div class="cat-tabs" id="catTabs"></div>
     <div class="matches-container" id="matchesContainer">
       <div class="no-matches">CARGANDO PARTIDOS<span class="loading-dots"></span></div>
     </div>
@@ -355,30 +390,46 @@ body { color: var(--lcd); background: var(--lcd-bg); }
 
 <script>
 // ============================================================
-//  CONFIG â Edit coordinates for weather
+//  CONFIG
 // ============================================================
-var LAT = -34.6037;   // Buenos Aires
+var LAT = -34.6037;
 var LON = -58.3816;
 
 // ============================================================
 //  TEAMS
 // ============================================================
 var TEAMS = [
-  { id: 'river',     name: 'RIVER',       apiId: 435,  color: '#ff3333' },
-  { id: 'argentina', name: 'ARGENTINA',   apiId: 26,   color: '#75aadb' },
-  { id: 'miami',     name: 'INTER MIA',   apiId: 18656,color: '#f7b5cd' },
-  { id: 'barca',     name: 'BARCELONA',   apiId: 529,  color: '#a50044' },
-  { id: 'real',      name: 'R. MADRID',   apiId: 541,  color: '#ffffff' },
-  { id: 'atletico',  name: 'ATLETICO',    apiId: 530,  color: '#cb3524' },
-  { id: 'inter',     name: 'INTER',       apiId: 505,  color: '#009cdc' },
-  { id: 'manu',      name: 'MAN UTD',     apiId: 33,   color: '#da291c' },
-  { id: 'manc',      name: 'MAN CITY',    apiId: 50,   color: '#6cabdd' }
+  { id: 'river',     name: 'RIVER',       apiId: 435,   color: '#ff3333' },
+  { id: 'argentina', name: 'ARGENTINA',   apiId: 26,    color: '#75aadb' },
+  { id: 'miami',     name: 'INTER MIA',   apiId: 18656, color: '#f7b5cd' },
+  { id: 'barca',     name: 'BARCELONA',   apiId: 529,   color: '#a50044' },
+  { id: 'real',      name: 'R. MADRID',   apiId: 541,   color: '#ffffff' },
+  { id: 'atletico',  name: 'ATLETICO',    apiId: 530,   color: '#cb3524' },
+  { id: 'inter',     name: 'INTER',       apiId: 505,   color: '#009cdc' },
+  { id: 'manu',      name: 'MAN UTD',     apiId: 33,    color: '#da291c' },
+  { id: 'manc',      name: 'MAN CITY',    apiId: 50,    color: '#6cabdd' }
 ];
 
-var currentTeam = 0;
+// Category definitions: key -> { label, competitions (array of substrings to match) }
+// 'favs' is special: shows all teams combined
+// 'team-X' shows a specific team
+var CATEGORIES = [
+  { key: 'favs',    label: '\u2605 TODOS' },
+  { key: 'team-0',  label: 'RIVER' },
+  { key: 'team-1',  label: 'ARGENTINA' },
+  { key: 'team-2',  label: 'INTER MIA' },
+  { key: 'liga',    label: 'LA LIGA',    comps: ['La Liga', 'Copa del Rey', 'Supercopa'] },
+  { key: 'premier', label: 'PREMIER',    comps: ['Premier League', 'FA Cup', 'EFL Cup'] },
+  { key: 'seriea',  label: 'SERIE A',    comps: ['Serie A', 'Coppa Italia'] },
+  { key: 'copas',   label: 'COPAS EUR',  comps: ['Champions League', 'Europa League', 'Conference League', 'UEFA Super Cup'] },
+  { key: 'mundial', label: 'SELEC',      comps: ['World Cup', 'WC Qualification', 'Copa America', 'Friendlies'] }
+];
+
+var currentCat = 0;
 var autoRotate = true;
 var autoRotateTimer = null;
 var matchData = {};
+var allMatches = [];
 var themes = ['theme-green', 'theme-blue', 'theme-bw', 'theme-amber'];
 var currentTheme = 0;
 
@@ -405,17 +456,17 @@ updateClock();
 //  WEATHER
 // ============================================================
 var WMO_ICONS = {
-  0: 'âï¸', 1: 'ð¤ï¸', 2: 'â', 3: 'âï¸',
-  45: 'ð«ï¸', 48: 'ð«ï¸',
-  51: 'ð¦ï¸', 53: 'ð¦ï¸', 55: 'ð§ï¸',
-  61: 'ð§ï¸', 63: 'ð§ï¸', 65: 'ð§ï¸',
-  71: 'ð¨ï¸', 73: 'ð¨ï¸', 75: 'ð¨ï¸',
-  80: 'ð¦ï¸', 81: 'ð§ï¸', 82: 'ð§ï¸',
-  95: 'âï¸', 96: 'âï¸', 99: 'âï¸'
+  0: '\u2600\uFE0F', 1: '\uD83C\uDF24\uFE0F', 2: '\u26C5', 3: '\u2601\uFE0F',
+  45: '\uD83C\uDF2B\uFE0F', 48: '\uD83C\uDF2B\uFE0F',
+  51: '\uD83C\uDF26\uFE0F', 53: '\uD83C\uDF26\uFE0F', 55: '\uD83C\uDF27\uFE0F',
+  61: '\uD83C\uDF27\uFE0F', 63: '\uD83C\uDF27\uFE0F', 65: '\uD83C\uDF27\uFE0F',
+  71: '\uD83C\uDF28\uFE0F', 73: '\uD83C\uDF28\uFE0F', 75: '\uD83C\uDF28\uFE0F',
+  80: '\uD83C\uDF26\uFE0F', 81: '\uD83C\uDF27\uFE0F', 82: '\uD83C\uDF27\uFE0F',
+  95: '\u26C8\uFE0F', 96: '\u26C8\uFE0F', 99: '\u26C8\uFE0F'
 };
 
 var WMO_DESC = {
-  0: 'DESPEJADO', 1: 'MAYORMENTE DESPEJADO', 2: 'PARCIALMENTE NUBLADO', 3: 'NUBLADO',
+  0: 'DESPEJADO', 1: 'MAYORM. DESPEJADO', 2: 'PARCIALM. NUBLADO', 3: 'NUBLADO',
   45: 'NIEBLA', 48: 'NIEBLA',
   51: 'LLOVIZNA LEVE', 53: 'LLOVIZNA', 55: 'LLOVIZNA FUERTE',
   61: 'LLUVIA LEVE', 63: 'LLUVIA', 65: 'LLUVIA FUERTE',
@@ -434,8 +485,9 @@ function fetchWeather() {
         var data = JSON.parse(xhr.responseText);
         var temp = data.current_weather.temperature;
         var code = data.current_weather.weathercode;
-        document.getElementById('weatherTemp').textContent = temp.toFixed(1) + 'Â°';
-        document.getElementById('weatherIcon').textContent = WMO_ICONS[code] || 'ð¡ï¸';
+        document.querySelector('.weather-temp-num').textContent = temp.toFixed(1);
+        document.querySelector('.weather-temp-deg').textContent = '\u00B0C';
+        document.getElementById('weatherIcon').textContent = WMO_ICONS[code] || '\uD83C\uDF21\uFE0F';
         document.getElementById('weatherDesc').textContent = WMO_DESC[code] || 'CODIGO ' + code;
       } catch(e) {
         document.getElementById('weatherDesc').textContent = 'ERROR';
@@ -446,35 +498,41 @@ function fetchWeather() {
 }
 
 fetchWeather();
-setInterval(fetchWeather, 600000); // every 10 min
+setInterval(fetchWeather, 600000);
 
 // ============================================================
 //  FOOTBALL
 // ============================================================
-function buildTabs() {
-  var container = document.getElementById('teamTabs');
+function buildCatTabs() {
+  var container = document.getElementById('catTabs');
   container.innerHTML = '';
-  for (var i = 0; i < TEAMS.length; i++) {
+  for (var i = 0; i < CATEGORIES.length; i++) {
     var btn = document.createElement('button');
-    btn.className = 'team-tab' + (i === currentTeam ? ' active' : '');
-    btn.textContent = TEAMS[i].name;
+    var cls = 'cat-tab';
+    if (i === currentCat) cls += ' active';
+    if (CATEGORIES[i].key === 'favs') cls += ' fav-tab';
+    btn.className = cls;
+    btn.textContent = CATEGORIES[i].label;
     btn.setAttribute('data-idx', i);
     btn.onclick = function() {
       var idx = parseInt(this.getAttribute('data-idx'));
-      selectTeam(idx);
+      selectCat(idx);
       resetAutoRotate();
     };
     container.appendChild(btn);
   }
 }
 
-function selectTeam(idx) {
-  currentTeam = idx;
-  var tabs = document.querySelectorAll('.team-tab');
+function selectCat(idx) {
+  currentCat = idx;
+  var tabs = document.querySelectorAll('.cat-tab');
   for (var i = 0; i < tabs.length; i++) {
-    tabs[i].className = 'team-tab' + (i === idx ? ' active' : '');
+    var cls = 'cat-tab';
+    if (i === idx) cls += ' active';
+    if (CATEGORIES[i].key === 'favs') cls += ' fav-tab';
+    tabs[i].className = cls;
   }
-  renderMatches();
+  renderView();
 }
 
 function fetchFootball() {
@@ -490,7 +548,8 @@ function fetchFootball() {
       if (xhr.status === 200) {
         try {
           matchData = JSON.parse(xhr.responseText);
-          renderMatches();
+          buildAllMatches();
+          renderView();
           var now = new Date();
           document.getElementById('refreshLabel').textContent =
             'ACT: ' + ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
@@ -505,9 +564,189 @@ function fetchFootball() {
   xhr.send();
 }
 
+function buildAllMatches() {
+  // Flatten all matches from all teams into a single array, avoiding duplicates
+  allMatches = [];
+  var seen = {};
+  for (var i = 0; i < TEAMS.length; i++) {
+    var teamId = TEAMS[i].apiId;
+    var data = matchData[teamId];
+    if (!data) continue;
+    var combined = (data.last || []).concat(data.next || []);
+    for (var j = 0; j < combined.length; j++) {
+      var m = combined[j];
+      // Deduplicate by date + home + away
+      var key = m.date + '|' + m.home + '|' + m.away;
+      if (!seen[key]) {
+        seen[key] = true;
+        m._teamId = teamId;
+        m._teamIdx = i;
+        allMatches.push(m);
+      }
+    }
+  }
+  allMatches.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
+}
+
 function showError(msg) {
   document.getElementById('matchesContainer').innerHTML =
     '<div class="no-matches">' + msg + '</div>';
+}
+
+function renderView() {
+  var cat = CATEGORIES[currentCat];
+  var container = document.getElementById('matchesContainer');
+
+  if (cat.key === 'favs') {
+    renderFavsView(container);
+  } else if (cat.key.indexOf('team-') === 0) {
+    var teamIdx = parseInt(cat.key.split('-')[1]);
+    renderTeamView(container, teamIdx);
+  } else {
+    renderLeagueView(container, cat);
+  }
+}
+
+function renderFavsView(container) {
+  if (allMatches.length === 0) {
+    container.innerHTML = '<div class="no-matches">SIN PARTIDOS DISPONIBLES</div>';
+    return;
+  }
+
+  var now = new Date();
+  var past = [];
+  var upcoming = [];
+
+  for (var i = 0; i < allMatches.length; i++) {
+    var m = allMatches[i];
+    if (isFinished(m.status)) {
+      past.push(m);
+    } else {
+      upcoming.push(m);
+    }
+  }
+
+  // Past: most recent first, limit to 8
+  past.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+  past = past.slice(0, 8);
+
+  // Upcoming: soonest first, limit to 8
+  upcoming.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
+  upcoming = upcoming.slice(0, 8);
+
+  var html = '';
+
+  if (past.length > 0) {
+    html += '<div class="section-title">ULTIMOS RESULTADOS</div>';
+    for (var i = 0; i < past.length; i++) {
+      html += renderMatchRow(past[i], null, true);
+    }
+  }
+
+  if (upcoming.length > 0) {
+    html += '<div class="section-title">PROXIMOS PARTIDOS</div>';
+    for (var j = 0; j < upcoming.length; j++) {
+      html += renderMatchRow(upcoming[j], null, true);
+    }
+  }
+
+  if (html === '') {
+    html = '<div class="no-matches">SIN PARTIDOS DISPONIBLES</div>';
+  }
+
+  container.innerHTML = html;
+}
+
+function renderTeamView(container, teamIdx) {
+  var team = TEAMS[teamIdx];
+  var data = matchData[team.apiId];
+
+  if (!data) {
+    container.innerHTML = '<div class="no-matches">CARGANDO<span class="loading-dots"></span></div>';
+    return;
+  }
+
+  if ((!data.last || data.last.length === 0) && (!data.next || data.next.length === 0)) {
+    container.innerHTML = '<div class="no-matches">SIN PARTIDOS DISPONIBLES</div>';
+    return;
+  }
+
+  var html = '';
+
+  if (data.last && data.last.length > 0) {
+    html += '<div class="section-title">ULTIMOS RESULTADOS</div>';
+    for (var i = 0; i < data.last.length; i++) {
+      html += renderMatchRow(data.last[i], team.apiId, false);
+    }
+  }
+
+  if (data.next && data.next.length > 0) {
+    html += '<div class="section-title">PROXIMOS PARTIDOS</div>';
+    for (var j = 0; j < data.next.length; j++) {
+      html += renderMatchRow(data.next[j], team.apiId, false);
+    }
+  }
+
+  container.innerHTML = html;
+}
+
+function renderLeagueView(container, cat) {
+  // Filter allMatches by competition names
+  var comps = cat.comps || [];
+  var filtered = [];
+
+  for (var i = 0; i < allMatches.length; i++) {
+    var m = allMatches[i];
+    for (var c = 0; c < comps.length; c++) {
+      if (m.competition && m.competition.indexOf(comps[c]) !== -1) {
+        filtered.push(m);
+        break;
+      }
+    }
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="no-matches">SIN PARTIDOS EN ESTA LIGA</div>';
+    return;
+  }
+
+  var past = [];
+  var upcoming = [];
+
+  for (var i = 0; i < filtered.length; i++) {
+    if (isFinished(filtered[i].status)) {
+      past.push(filtered[i]);
+    } else {
+      upcoming.push(filtered[i]);
+    }
+  }
+
+  past.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+  past = past.slice(0, 8);
+  upcoming.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
+  upcoming = upcoming.slice(0, 8);
+
+  var html = '';
+
+  if (past.length > 0) {
+    html += '<div class="section-title">ULTIMOS RESULTADOS</div>';
+    for (var i = 0; i < past.length; i++) {
+      html += renderMatchRow(past[i], null, true);
+    }
+  }
+
+  if (upcoming.length > 0) {
+    html += '<div class="section-title">PROXIMOS PARTIDOS</div>';
+    for (var j = 0; j < upcoming.length; j++) {
+      html += renderMatchRow(upcoming[j], null, true);
+    }
+  }
+
+  container.innerHTML = html;
+}
+
+function isFinished(status) {
+  return ['FT', 'AET', 'PEN', 'WO', 'AWD'].indexOf(status) !== -1;
 }
 
 function formatMatchDate(dateStr) {
@@ -552,50 +791,35 @@ function shortCompetition(name) {
   for (var key in map) {
     if (name.indexOf(key) !== -1) return map[key];
   }
-  // Abbreviate to 6 chars
   return name.substring(0, 6).toUpperCase();
 }
 
-function renderMatches() {
-  var team = TEAMS[currentTeam];
-  var data = matchData[team.apiId];
-  var container = document.getElementById('matchesContainer');
-
-  if (!data) {
-    container.innerHTML = '<div class="no-matches">CARGANDO<span class="loading-dots"></span></div>';
-    return;
-  }
-
-  if ((!data.last || data.last.length === 0) && (!data.next || data.next.length === 0)) {
-    container.innerHTML = '<div class="no-matches">SIN PARTIDOS DISPONIBLES</div>';
-    return;
-  }
-
-  var html = '';
-
-  // Last results
-  if (data.last && data.last.length > 0) {
-    html += '<div class="section-title">ULTIMOS RESULTADOS</div>';
-    for (var i = 0; i < data.last.length; i++) {
-      html += renderMatchRow(data.last[i], team.apiId);
+// Find which of our teams plays in this match
+function findTeamBadge(match) {
+  for (var i = 0; i < TEAMS.length; i++) {
+    if (match.homeId === TEAMS[i].apiId || match.awayId === TEAMS[i].apiId) {
+      return TEAMS[i].name.substring(0, 3);
     }
   }
-
-  // Next matches
-  if (data.next && data.next.length > 0) {
-    html += '<div class="section-title">PROXIMOS PARTIDOS</div>';
-    for (var j = 0; j < data.next.length; j++) {
-      html += renderMatchRow(data.next[j], team.apiId);
-    }
-  }
-
-  container.innerHTML = html;
+  return '';
 }
 
-function renderMatchRow(match, teamId) {
-  var isHome = match.homeId === teamId;
-  var homeClass = isHome ? ' match-highlight' : '';
-  var awayClass = !isHome ? ' match-highlight' : '';
+function renderMatchRow(match, highlightTeamId, showBadge) {
+  var homeClass = '';
+  var awayClass = '';
+
+  if (highlightTeamId) {
+    var isHome = match.homeId === highlightTeamId;
+    homeClass = isHome ? ' match-highlight' : '';
+    awayClass = !isHome ? ' match-highlight' : '';
+  } else {
+    // In combined view, highlight any of our teams
+    for (var t = 0; t < TEAMS.length; t++) {
+      if (match.homeId === TEAMS[t].apiId) { homeClass = ' match-highlight'; break; }
+      if (match.awayId === TEAMS[t].apiId) { awayClass = ' match-highlight'; break; }
+    }
+  }
+
   var score = '';
   var scoreClass = 'match-score';
 
@@ -611,7 +835,7 @@ function renderMatchRow(match, teamId) {
 
   var statusLabel = '';
   if (match.status === 'LIVE' || match.status === '1H' || match.status === '2H') {
-    statusLabel = ' [' + (match.elapsed || 'EN VIVO') + "']";
+    statusLabel = ' [' + (match.elapsed || 'VIVO') + "']";
   } else if (match.status === 'HT') {
     statusLabel = ' [ET]';
   } else if (match.status === 'PEN') {
@@ -620,7 +844,13 @@ function renderMatchRow(match, teamId) {
     statusLabel = ' (AET)';
   }
 
+  var badgeHtml = '';
+  if (showBadge) {
+    badgeHtml = '<span class="match-badge">' + findTeamBadge(match) + '</span>';
+  }
+
   return '<div class="match-row">' +
+    badgeHtml +
     '<span class="match-date">' + formatMatchDate(match.date) + '</span>' +
     '<span class="match-competition">' + shortCompetition(match.competition) + '</span>' +
     '<div class="match-teams">' +
@@ -638,8 +868,8 @@ function startAutoRotate() {
   if (autoRotateTimer) clearInterval(autoRotateTimer);
   autoRotateTimer = setInterval(function() {
     if (!autoRotate) return;
-    currentTeam = (currentTeam + 1) % TEAMS.length;
-    selectTeam(currentTeam);
+    currentCat = (currentCat + 1) % CATEGORIES.length;
+    selectCat(currentCat);
   }, 8000);
 }
 
@@ -670,11 +900,10 @@ function cycleTheme() {
 // ============================================================
 //  INIT
 // ============================================================
-buildTabs();
+buildCatTabs();
 fetchFootball();
 startAutoRotate();
 
-// Refresh football data every 5 minutes
 setInterval(fetchFootball, 300000);
 </script>
 </body>
