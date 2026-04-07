@@ -370,12 +370,8 @@ body { color: var(--lcd); background: var(--lcd-bg); }
   </div>
 
   <!-- FOOTBALL -->
-  
-  
-  
-  
-  
-     5Êvclass="cat-tabs" id="catTabs"></div>
+  <div class="casio-frame" data-label="partidos" style="margin-top:10px;">
+    <div class="cat-tabs" id="catTabs"></div>
     <div class="matches-container" id="matchesContainer">
       <div class="no-matches">CARGANDO PARTIDOS<span class="loading-dots"></span></div>
     </div>
@@ -593,7 +589,7 @@ function buildAllMatches() {
       }
     }
   }
-  A!-ME[Ches.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
+  allMatches.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
 }
 
 function showError(msg) {
@@ -666,6 +662,7 @@ function renderFavsView(container) {
 
   container.innerHTML = html;
 }
+
 function renderTeamView(container, teamIdx) {
   var team = TEAMS[teamIdx];
   var data = matchData[team.apiId];
@@ -677,7 +674,7 @@ function renderTeamView(container, teamIdx) {
 
   if ((!data.last || data.last.length === 0) && (!data.next || data.next.length === 0)) {
     container.innerHTML = '<div class="no-matches">SIN PARTIDOS DISPONIBLES</div>';
-    return+
+    return;
   }
 
   var html = '';
@@ -738,7 +735,7 @@ function renderLeagueView(container, cat) {
   var html = '';
 
   if (past.length > 0) {
-    html += '<div class="section-title">UTGIMOS RESULTADOS</div>';
+    html += '<div class="section-title">ULTIMOS RESULTADOS</div>';
     for (var i = 0; i < past.length; i++) {
       html += renderMatchRow(past[i], null, true);
     }
@@ -755,7 +752,7 @@ function renderLeagueView(container, cat) {
 }
 
 function renderFullLeagueView(container, cat) {
-var lid = cat.leagueId;
+  var lid = cat.leagueId;
   var matches = leagueData[lid];
 
   if (!matches) {
@@ -814,7 +811,7 @@ function fetchLeagues() {
       ids.push(CATEGORIES[i].leagueId);
     }
   }
-  Ids.length === 0) return;
+  if (ids.length === 0) return;
 
   var url = '/api/leagues?ids=' + ids.join(',');
   var xhr = new XMLHttpRequest();
@@ -890,13 +887,14 @@ function shortCompetition(name) {
 // Find which of our teams plays in this match
 function findTeamBadge(match) {
   for (var i = 0; i < TEAMS.length; i++) {
-    if (match.hmeId === TEAMS[i].apiId || match.awayId === TEAMS[i].apiId) {
+    if (match.homeId === TEAMS[i].apiId || match.awayId === TEAMS[i].apiId) {
       return TEAMS[i].name.substring(0, 3);
     }
   }
-  Xeturn '';
+  return '';
 }
-fnction renderMatchRow(match, highlightTeamId, showBadge) {
+
+function renderMatchRow(match, highlightTeamId, showBadge) {
   var homeClass = '';
   var awayClass = '';
 
@@ -907,7 +905,7 @@ fnction renderMatchRow(match, highlightTeamId, showBadge) {
   } else {
     // In combined view, highlight any of our teams
     for (var t = 0; t < TEAMS.length; t++) {
-      if (match.homeId === TEAMS[t].apiId) { hmeClass = ' match-highlight'; break; }
+      if (match.homeId === TEAMS[t].apiId) { homeClass = ' match-highlight'; break; }
       if (match.awayId === TEAMS[t].apiId) { awayClass = ' match-highlight'; break; }
     }
   }
@@ -950,7 +948,7 @@ fnction renderMatchRow(match, highlightTeamId, showBadge) {
       '<span class="' + scoreClass + '">' + score + statusLabel + '</span>' +
       '<span class="match-away' + awayClass + '">' + match.away + '</span>' +
     '</div>' +
-   '</div>';
+  '</div>';
 }
 
 // ============================================================
@@ -1000,5 +998,5 @@ startAutoRotate();
 setInterval(fetchFootball, 300000);
 setInterval(fetchLeagues, 600000);
 </script>
-</Êody>
+</body>
 </html>
